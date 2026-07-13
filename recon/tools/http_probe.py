@@ -12,11 +12,14 @@ import re
 from .base import ExpertCommandError, ParseResult, RunContext, ToolPlugin
 
 _USER_AGENT = "KaliRecon/1.0 (+authorized-recon)"
+# All values are quoted so the JSON stays valid even when a numeric curl
+# variable (e.g. ssl_verify_result on a plain-HTTP target) is empty. Values are
+# coerced back to ints in parse().
 _WRITEOUT = (
-    '{"status":%{http_code},"content_type":"%{content_type}",'
-    '"size_download":%{size_download},"redirect_url":"%{redirect_url}",'
-    '"url_effective":"%{url_effective}","ssl_verify":%{ssl_verify_result},'
-    '"num_redirects":%{num_redirects}}'
+    '{"status":"%{http_code}","content_type":"%{content_type}",'
+    '"size_download":"%{size_download}","redirect_url":"%{redirect_url}",'
+    '"url_effective":"%{url_effective}","ssl_verify":"%{ssl_verify_result}",'
+    '"num_redirects":"%{num_redirects}"}'
 )
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
@@ -138,9 +141,9 @@ class HttpProbePlugin(ToolPlugin):
         endpoint = {
             "url": meta.get("url_effective") or context_url(task),
             "method": "GET",
-            "status_code": meta.get("status"),
+            "status_code": _to_int(meta.get("status")),
             "title": title,
-            "content_length": meta.get("size_download"),
+            "content_length": _to_int(meta.get("size_download")),
             "content_type": content_type,
             "redirect_location": redirect,
             "in_scope": True,
@@ -173,6 +176,15 @@ class HttpProbePlugin(ToolPlugin):
                 pass
         _ = headers_text
         return ParseResult(endpoints=[endpoint], findings=findings)
+
+
+def _to_int(value):
+    try:
+        if value in (None, "", "000"):
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def context_url(task) -> str:
