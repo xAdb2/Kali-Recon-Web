@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}新增任務 — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<h1>新增偵察任務</h1>
+
+{% if form.non_field_errors %}
+<ul class="messages">{% for e in form.non_field_errors %}<li class="msg error">{{ e }}</li>{% endfor %}</ul>
+{% endif %}
+
+<form method="post" id="task-form">
+  {% csrf_token %}
+  <section class="card">
+    <div class="grid2">
+      <label>任務名稱{{ form.name }}{{ form.name.errors }}</label>
+      <label>掃描設定檔{{ form.profile }}{{ form.profile.errors }}</label>
+      <label>目標 IP<br><small class="muted">實際 TCP 連線將連往此 IP</small>{{ form.target_ip }}{{ form.target_ip.errors }}</label>
+      <label>目標 URL（選填）<br><small class="muted">TLS SNI 與 HTTP Host 使用此主機名稱</small>{{ form.target_url }}{{ form.target_url.errors }}</label>
+      <label>請求速率上限{{ form.rate_limit }}{{ form.rate_limit.errors }}</label>
+      <label>任務最長秒數{{ form.max_duration }}{{ form.max_duration.errors }}</label>
+    </div>
+    <p class="note">IP↔主機名稱對應會強制套用到每個 HTTP/TLS 工具：連線至指定 IP，但 SNI 與 Host 使用指定主機名稱。</p>
+  </section>
+
+  <section class="card">
+    <h2>偵察工具</h2>
+    <p class="muted small">選擇相依工具時（如 WhatWeb、Dirsearch、Nuclei）將自動插入必要的前置步驟（HTTP 基線）。TLS 僅適用 https。Dirsearch「Deep」設定檔於 MVP 未實作。</p>
+    {{ form.tools.errors }}
+    <div class="tool-list">
+      {% for tool in tool_meta %}
+      <div class="tool-card">
+        <label class="tool-head">
+          <input type="checkbox" name="tools" value="{{ tool.name }}" class="tool-check" data-tool="{{ tool.name }}">
+          <strong>{{ tool.title }}</strong>
+          <code>{{ tool.executable }}</code>
+          {% if tool.dependencies %}<span class="dep">相依：{{ tool.dependencies|join:", " }}</span>{% endif %}
+          {% if tool.https_only %}<span class="dep">僅 https</span>{% endif %}
+        </label>
+        {% if expert_enabled %}
+        <div class="expert" data-tool="{{ tool.name }}" hidden>
+          <label class="checkline">
+            <input type="checkbox" class="expert-toggle" data-tool="{{ tool.name }}">
+            使用進階自訂指令
+          </label>
+          <input type="hidden" name="mode_{{ tool.name }}" value="DEFAULT" class="mode-input" data-tool="{{ tool.name }}">
+          <label>預設／自訂指令：
+            <textarea name="expert_{{ tool.name }}" rows="2" class="expert-cmd mono" data-tool="{{ tool.name }}" disabled></textarea>
+          </label>
+          <label>驗證後實際命令（唯讀）：
+            <textarea rows="2" class="expert-preview mono" data-tool="{{ tool.name }}" readonly placeholder="輸入目標與指令後自動驗證"></textarea>
+          </label>
+          <p class="preview-msg small" data-tool="{{ tool.name }}"></p>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if expert_enabled %}
+    <p class="warn">⚠️ 進階自訂指令非常強大，但<strong>僅限於所選工具</strong>，且仍受授權目標範圍限制。禁止 shell 運算子、管線、重導、指令串接與更換執行檔。</p>
+    {% else %}
+    <p class="muted small">進階自訂指令未啟用（需超級使用者且 ENABLE_EXPERT_COMMANDS=true）。</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <label class="checkline">{{ form.authorized }} 我確認已獲得對此目標進行偵察的授權。</label>
+    {{ form.authorized.errors }}
+    <button type="submit" class="primary">建立並啟動任務</button>
+  </section>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.KRECON = {
+    previewUrl: "{% url 'command_preview' %}",
+    csrf: "{{ csrf_token }}",
+    expertEnabled: {{ expert_enabled|yesno:"true,false" }}
+  };
+</script>
+<script src="{% static 'recon/create.js' %}"></script>
+{% endblock %}

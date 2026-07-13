@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>KaliRecon 報告 — {{ data.task.name }}</title>
+<style>
+  body{font-family:system-ui,"Segoe UI",Arial,sans-serif;margin:0;background:#0f1419;color:#e6e6e6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px;}
+  h1,h2{color:#7dd3fc;border-bottom:1px solid #2a3441;padding-bottom:6px;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;}
+  th,td{border:1px solid #2a3441;padding:6px 8px;text-align:left;vertical-align:top;}
+  th{background:#1a2230;}
+  .mono{font-family:ui-monospace,Consolas,monospace;}
+  .sev-critical{color:#f87171;font-weight:bold;} .sev-high{color:#fb923c;font-weight:bold;}
+  .sev-medium{color:#fbbf24;} .sev-low{color:#a3e635;} .sev-info{color:#93c5fd;}
+  .box{background:#151b24;border:1px solid #2a3441;border-radius:8px;padding:12px 16px;margin:12px 0;}
+  pre{white-space:pre-wrap;background:#0b0f14;padding:8px;border-radius:6px;overflow:auto;}
+  .disclaimer{background:#2a1e10;border:1px solid #6b4b1f;}
+  .muted{color:#94a3b8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>KaliRecon Web 偵察報告</h1>
+  <p class="muted">產生時間：{{ data.generated_at }}</p>
+
+  <h2>1. 執行摘要</h2>
+  <div class="box">
+    <p>任務「{{ data.task.name }}」狀態：<strong>{{ task.get_status_display }}</strong>。</p>
+    <p>服務 {{ data.services|length }} 項、端點 {{ data.endpoints|length }} 項、發現 {{ data.findings|length }} 項。</p>
+    {% if data.task.error_summary %}<pre>{{ data.task.error_summary }}</pre>{% endif %}
+  </div>
+
+  <h2>2. 目標定義與強制 IP／主機對應</h2>
+  <div class="box">
+    <table>
+      <tr><th>目標 IP（實際連線）</th><td class="mono">{{ data.task.target_ip }}</td></tr>
+      <tr><th>目標 URL</th><td class="mono">{{ data.task.target_url|default:"—" }}</td></tr>
+      <tr><th>主機名稱（SNI / Host）</th><td class="mono">{{ data.task.hostname|default:"—" }}</td></tr>
+      <tr><th>強制對應</th><td class="mono">{% for h, ip in data.ip_host_mapping.items %}{{ h }} → {{ ip }}{% empty %}（無）{% endfor %}</td></tr>
+    </table>
+  </div>
+
+  <h2>3. 掃描設定</h2>
+  <div class="box">
+    <p>設定檔：{{ data.task.profile }}；速率上限：{{ data.task.rate_limit }}；最長秒數：{{ data.task.max_duration }}</p>
+    <p>要求工具：{{ data.task.requested_tools|join:", " }}</p>
+  </div>
+
+  <h2>4. 完成狀態與失敗／略過步驟</h2>
+  <table>
+    <thead><tr><th>#</th><th>工具</th><th>模式</th><th>狀態</th><th>結束碼</th><th>指令</th></tr></thead>
+    <tbody>
+    {% for s in data.steps %}
+      <tr><td>{{ s.order }}</td><td>{{ s.tool }}</td><td>{{ s.command_mode }}</td>
+        <td>{{ s.status }}</td><td>{{ s.exit_code }}</td><td class="mono">{{ s.display_command }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>5. 開放連接埠與服務</h2>
+  <table>
+    <thead><tr><th>IP</th><th>埠</th><th>協定</th><th>服務</th><th>產品</th><th>版本</th><th>來源</th></tr></thead>
+    <tbody>
+    {% for s in data.services %}
+      <tr><td class="mono">{{ s.ip }}</td><td>{{ s.port }}</td><td>{{ s.transport }}</td>
+        <td>{{ s.service_name }}</td><td>{{ s.product }}</td><td>{{ s.version }}</td><td>{{ s.source_tool }}</td></tr>
+    {% empty %}<tr><td colspan="7" class="muted">無</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>6. HTTP / TLS 摘要</h2>
+  <div class="box">
+    {% for f in data.findings %}{% if f.category == "tls" or f.category == "technology" %}
+      <p class="sev-{{ f.severity }}">{{ f.title }}</p><pre>{{ f.evidence }}</pre>
+    {% endif %}{% endfor %}
+  </div>
+
+  <h2>7. 探索到的端點</h2>
+  <table>
+    <thead><tr><th>URL</th><th>方法</th><th>狀態碼</th><th>標題</th><th>來源</th></tr></thead>
+    <tbody>
+    {% for e in data.endpoints %}
+      <tr><td class="mono">{{ e.url }}</td><td>{{ e.method }}</td><td>{{ e.status_code }}</td>
+        <td>{{ e.title }}</td><td>{{ e.source_tools|join:"," }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">無</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>8. 發現（依嚴重度分組）</h2>
+  {% for sev, items in grouped_findings %}
+    <h3 class="sev-{{ sev }}">{{ sev|upper }}（{{ items|length }}）</h3>
+    {% for f in items %}
+    <div class="box">
+      <p class="sev-{{ f.severity }}"><strong>{{ f.title }}</strong> — 信心 {{ f.get_confidence_display }} · 來源 {{ f.source_tool }}</p>
+      {% if f.description %}<p>{{ f.description }}</p>{% endif %}
+      {% if f.evidence %}<pre>{{ f.evidence }}</pre>{% endif %}
+      {% if f.remediation %}<p class="muted">建議：{{ f.remediation }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  {% empty %}<p class="muted">無發現。</p>{% endfor %}
+
+  <h2>9. 需人工驗證的項目</h2>
+  <div class="box">
+    {% for f in manual_findings %}<p class="sev-{{ f.severity }}">{{ f.title }}（{{ f.source_tool }}）</p>{% empty %}<p class="muted">無</p>{% endfor %}
+    <p class="muted">掃描器錯誤不代表目標弱點；觀察、可能問題與確認發現請分別看待。</p>
+  </div>
+
+  <h2>10. 工具版本與執行中繼資料</h2>
+  <table>
+    <thead><tr><th>工具</th><th>版本</th><th>狀態</th><th>耗時(s)</th></tr></thead>
+    <tbody>
+    {% for s in data.steps %}<tr><td>{{ s.tool }}</td><td>{{ s.tool_version }}</td><td>{{ s.status }}</td><td>{{ s.duration_seconds }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>11. 產出物索引</h2>
+  <table>
+    <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>SHA-256</th></tr></thead>
+    <tbody>
+    {% for a in artifacts %}<tr><td>{{ a.name }}</td><td>{{ a.artifact_type }}</td><td>{{ a.size }}</td><td class="mono">{{ a.sha256 }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="disclaimer" style="padding:8px 12px;border-radius:6px;">12. 範圍與授權聲明</h2>
+  <div class="box disclaimer">
+    本報告僅涵蓋授權範圍：指定的目標 IP、目標 URL 之主機名稱，以及該 IP 上探索到的連接埠。
+    未自動擴展至子網域、鄰近 IP、ASN 範圍或範圍外的重導目標。本工具僅供已獲授權之偵察使用。
+  </div>
+</div>
+</body>
+</html>
