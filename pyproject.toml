@@ -1,0 +1,45 @@
+[project]
+name = "kalirecon-web"
+version = "0.1.0"
+description = "KaliRecon Web — authorized reconnaissance workflow manager (MVP)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "Django>=5.1,<5.2",
+    "celery>=5.4,<5.5",
+    "redis>=5.0,<6.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "gunicorn>=23.0,<24.0",
+    "docker>=7.1,<8.0",
+    "whitenoise>=6.7,<7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-django>=4.9,<5.0",
+    "ruff>=0.6,<1.0",
+]
+
+[tool.setuptools]
+packages = ["config", "recon"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "tests.py"]
+addopts = "-q"
+testpaths = ["recon/tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

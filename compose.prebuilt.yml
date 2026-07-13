@@ -1,0 +1,19 @@
+# Overrides local builds with prebuilt GHCR images.
+# Usage:
+#   docker compose -f compose.yml -f compose.prebuilt.yml pull
+#   docker compose -f compose.yml -f compose.prebuilt.yml up -d
+# Set APP_IMAGE and SCANNER_IMAGE (GHCR refs) in .env — install.sh derives them.
+name: kalirecon
+
+services:
+  web:
+    build: !reset null
+    image: ${APP_IMAGE:?set APP_IMAGE in .env}
+
+  worker:
+    build: !reset null
+    image: ${APP_IMAGE:?set APP_IMAGE in .env}
+
+  scanner-build:
+    build: !reset null
+    image: ${SCANNER_IMAGE:?set SCANNER_IMAGE in .env}

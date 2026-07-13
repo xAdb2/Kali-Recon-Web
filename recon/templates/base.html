@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'recon/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><a href="{% url 'dashboard' %}">🛰️ {{ SITE_NAME }}</a></div>
+    <nav>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">儀表板</a>
+        <a href="{% url 'task_create' %}">新增任務</a>
+        {% if user.is_staff %}<a href="{% url 'status_page' %}">系統狀態</a>{% endif %}
+        <span class="user">{{ user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" class="inline">
+          {% csrf_token %}<button type="submit" class="link">登出</button>
+        </form>
+      {% endif %}
+    </nav>
+  </header>
+
+  <div class="auth-banner">
+    ⚠️ 本工具僅供對<strong>您擁有或已獲明確授權</strong>之系統進行偵察使用。未經授權的掃描可能違法。
+  </div>
+
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li class="msg {{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    KaliRecon Web — 授權偵察工作流程管理（MVP）。請勿將本服務公開暴露於網際網路。
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

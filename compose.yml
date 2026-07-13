@@ -1,0 +1,105 @@
+name: kalirecon
+
+x-app-env: &app-env
+  env_file: .env
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings
+    POSTGRES_HOST: db
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/0
+    WORKSPACE_ROOT: /workspace
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kalirecon}
+      POSTGRES_USER: ${POSTGRES_USER:-kalirecon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kalirecon}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kalirecon}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Intentionally NOT published to the host.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Intentionally NOT published to the host.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    image: ${APP_IMAGE:-kalirecon-app:local}
+    restart: unless-stopped
+    <<: *app-env
+    command: ["/app/docker/entrypoint.sh", "web"]
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8000"
+    volumes:
+      - workspaces:/workspace
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else sys.exit(1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+    image: ${APP_IMAGE:-kalirecon-app:local}
+    restart: unless-stopped
+    <<: *app-env
+    command: ["/app/docker/entrypoint.sh", "worker"]
+    volumes:
+      - workspaces:/workspace
+      # Host-equivalent privilege: required so the worker can start ephemeral
+      # scanner containers. Never expose this service publicly. See README.
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # Build-only helper for the scanner image (never a long-running service).
+  scanner-build:
+    build:
+      context: .
+      dockerfile: docker/scanner.Dockerfile
+    image: ${SCANNER_IMAGE:-kalirecon-scanner:local}
+    profiles: ["scanner"]
+    command: ["true"]
+
+volumes:
+  pgdata:
+  workspaces:
+    name: ${WORKSPACE_VOLUME:-kalirecon_workspaces}

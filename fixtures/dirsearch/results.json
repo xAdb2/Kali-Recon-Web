@@ -1,0 +1,9 @@
+{
+  "info": {"args": "dirsearch -u https://test.test.tw/"},
+  "results": [
+    {"url": "https://test.test.tw/admin/", "status": 401, "content-length": 12, "content-type": "text/html", "redirect": ""},
+    {"url": "https://test.test.tw/login", "status": 200, "content-length": 1841, "content-type": "text/html", "redirect": ""},
+    {"url": "https://test.test.tw/old", "status": 301, "content-length": 0, "content-type": "text/html", "redirect": "https://test.test.tw/new"},
+    {"url": "https://test.test.tw/robots.txt", "status": 200, "content-length": 64, "content-type": "text/plain", "redirect": ""}
+  ]
+}

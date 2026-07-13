@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}系統狀態 — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<h1>系統狀態</h1>
+<table class="grid">
+  <thead><tr><th>檢查項目</th><th>狀態</th><th>細節</th></tr></thead>
+  <tbody>
+    {% for c in checks %}
+    <tr>
+      <td>{{ c.name }}</td>
+      <td>{% if c.ok %}<span class="badge s-COMPLETED">正常</span>{% else %}<span class="badge s-FAILED">異常</span>{% endif %}</td>
+      <td class="mono small">{{ c.detail }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="warn">⚠️ Worker 掛載 <code>/var/run/docker.sock</code> 等同於主機層級權限；請勿將此服務公開暴露。</p>
+{% endblock %}

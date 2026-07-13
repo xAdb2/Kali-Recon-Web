@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ task.name }} — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="row between">
+  <h1>{{ task.name }}</h1>
+  <div class="actions">
+    {% if not task.is_terminal %}
+    <form method="post" action="{% url 'task_cancel' task.id %}" class="inline">
+      {% csrf_token %}<button class="danger">取消任務</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{% url 'task_rerun' task.id %}" class="inline">
+      {% csrf_token %}<button>以相同設定重跑</button>
+    </form>
+    <a class="button" href="{% url 'report_view' task.id 'html' %}" target="_blank">HTML 報告</a>
+    <a class="button" href="{% url 'report_view' task.id 'json' %}" target="_blank">JSON 報告</a>
+  </div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button class="tab active" data-tab="overview">總覽</button>
+  <button class="tab" data-tab="steps">步驟</button>
+  <button class="tab" data-tab="services">服務</button>
+  <button class="tab" data-tab="endpoints">Web 端點</button>
+  <button class="tab" data-tab="findings">發現</button>
+  <button class="tab" data-tab="logs">近期日誌</button>
+  <button class="tab" data-tab="artifacts">產出物</button>
+</div>
+
+<section class="tabpane active" id="tab-overview">
+  <div class="card">
+    <p>狀態：<span class="badge s-{{ task.status }}" id="task-status">{{ task.get_status_display }}</span>
+       進度：<span id="task-progress">{{ task.progress }}</span>%</p>
+    <div class="progressbar"><div id="progressfill" style="width: {{ task.progress }}%"></div></div>
+    <dl class="kv">
+      <dt>目標 IP</dt><dd class="mono">{{ task.target_ip }}</dd>
+      <dt>Scheme / 主機 / 埠 / 路徑</dt>
+      <dd class="mono">{{ task.url_scheme|default:"—" }} / {{ task.url_hostname|default:"—" }} / {{ task.url_port|default:"預設" }} / {{ task.url_base_path }}</dd>
+      <dt>強制 IP↔主機對應</dt>
+      <dd class="mono">{% for h, ip in ip_host_mapping.items %}{{ h }} → {{ ip }}{% empty %}（無 URL）{% endfor %}</dd>
+      <dt>設定檔 / 工具</dt><dd>{{ task.get_profile_display }} — {{ task.requested_tools|join:", " }}</dd>
+      <dt>建立 / 開始 / 結束</dt>
+      <dd class="mono small">{{ task.created_at|date:"Y-m-d H:i:s" }} / {{ task.started_at|date:"H:i:s"|default:"—" }} / {{ task.finished_at|date:"H:i:s"|default:"—" }}</dd>
+    </dl>
+    {% if task.error_summary %}<pre class="err-summary">{{ task.error_summary }}</pre>{% endif %}
+  </div>
+</section>
+
+<section class="tabpane" id="tab-steps">
+  <table class="grid" id="steps-table">
+    <thead><tr><th>#</th><th>工具</th><th>模式</th><th>狀態</th><th>結束碼</th><th>耗時(s)</th><th>命令 / 錯誤</th></tr></thead>
+    <tbody>
+      {% for step in steps %}
+      <tr data-order="{{ step.order }}">
+        <td>{{ step.order }}</td>
+        <td>{{ step.title }}</td>
+        <td>{{ step.get_command_mode_display }}</td>
+        <td class="col-status"><span class="badge s-{{ step.status }}">{{ step.get_status_display }}</span></td>
+        <td class="col-exit">{{ step.exit_code|default:"—" }}</td>
+        <td class="col-dur">{{ step.duration_seconds|default:"—" }}</td>
+        <td><code class="small">{{ step.display_command|default:"（尚未執行）" }}</code>
+          {% if step.error_summary %}<div class="err small col-err">{{ step.error_summary }}</div>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="tabpane" id="tab-services">
+  <table class="grid">
+    <thead><tr><th>IP</th><th>埠</th><th>協定</th><th>服務</th><th>產品</th><th>版本</th><th>來源</th></tr></thead>
+    <tbody>
+      {% for s in services %}
+      <tr><td class="mono">{{ s.ip }}</td><td>{{ s.port }}</td><td>{{ s.transport }}</td>
+        <td>{{ s.service_name }}</td><td>{{ s.product }}</td><td>{{ s.version }}</td><td>{{ s.source_tool }}</td></tr>
+      {% empty %}<tr><td colspan="7" class="muted">尚無服務。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="tabpane" id="tab-endpoints">
+  <table class="grid">
+    <thead><tr><th>URL</th><th>方法</th><th>狀態碼</th><th>標題</th><th>長度</th><th>重導</th><th>來源</th></tr></thead>
+    <tbody>
+      {% for e in endpoints %}
+      <tr><td class="mono small">{{ e.url }}</td><td>{{ e.method }}</td><td>{{ e.status_code|default:"—" }}</td>
+        <td>{{ e.title }}</td><td>{{ e.content_length|default:"—" }}</td>
+        <td class="mono small">{{ e.redirect_location }}</td><td>{{ e.source_tools|join:"," }}</td></tr>
+      {% empty %}<tr><td colspan="7" class="muted">尚無端點。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="tabpane" id="tab-findings">
+  {% for f in findings %}
+  <div class="finding sev-{{ f.severity }}">
+    <div class="row between">
+      <strong>{{ f.title }}</strong>
+      <span class="badge sev-{{ f.severity }}">{{ f.get_severity_display }} / 信心 {{ f.get_confidence_display }}</span>
+    </div>
+    <p class="muted small">{{ f.category }} · 來源 {{ f.source_tool }}</p>
+    {% if f.description %}<p>{{ f.description }}</p>{% endif %}
+    {% if f.evidence %}<pre class="evidence">{{ f.evidence }}</pre>{% endif %}
+    {% if f.remediation %}<p class="muted">建議：{{ f.remediation }}</p>{% endif %}
+  </div>
+  {% empty %}<p class="muted">尚無發現。</p>{% endfor %}
+</section>
+
+<section class="tabpane" id="tab-logs">
+  <p class="muted small">日誌會隨著任務進行更新（每 3 秒輪詢步驟狀態）。完整輸出請至產出物下載 stdout.log / stderr.log。</p>
+  <ul id="log-list" class="loglist"></ul>
+</section>
+
+<section class="tabpane" id="tab-artifacts">
+  <table class="grid">
+    <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>SHA-256</th><th></th></tr></thead>
+    <tbody>
+      {% for a in artifacts %}
+      <tr><td>{{ a.name }}</td><td>{{ a.artifact_type }}</td><td>{{ a.size }}</td>
+        <td class="mono small">{{ a.sha256|slice:":16" }}…</td>
+        <td><a href="{% url 'artifact_download' task.id a.id %}">下載</a></td></tr>
+      {% empty %}<tr><td colspan="5" class="muted">尚無產出物。</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.KRECON_TASK = {
+    statusUrl: "{% url 'task_status' task.id %}",
+    isTerminal: {{ task.is_terminal|yesno:"true,false" }}
+  };
+</script>
+<script src="{% static 'recon/detail.js' %}"></script>
+{% endblock %}

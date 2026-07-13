@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}儀表板 — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<div class="row between">
+  <h1>偵察任務</h1>
+  <a class="primary button" href="{% url 'task_create' %}">＋ 新增任務</a>
+</div>
+
+<p class="muted">進行中任務：{{ active_count }} / {{ max_active }}</p>
+
+<form method="get" class="filters">
+  <input type="search" name="q" value="{{ query }}" placeholder="搜尋名稱 / IP / 主機名稱">
+  <select name="status">
+    <option value="">全部狀態</option>
+    {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if value == current_status %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">篩選</button>
+</form>
+
+<table class="grid">
+  <thead>
+    <tr>
+      <th>名稱</th><th>目標 IP</th><th>目標 URL</th><th>工具</th>
+      <th>狀態</th><th>進度</th><th>建立時間</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for task in tasks %}
+    <tr>
+      <td>{{ task.name }}</td>
+      <td class="mono">{{ task.target_ip }}</td>
+      <td class="mono">{{ task.target_url|default:"—" }}</td>
+      <td>{{ task.requested_tools|join:", " }}</td>
+      <td><span class="badge s-{{ task.status }}">{{ task.get_status_display }}</span></td>
+      <td>{{ task.progress }}%</td>
+      <td class="mono small">{{ task.created_at|date:"Y-m-d H:i" }}</td>
+      <td><a href="{% url 'task_detail' task.id %}">檢視</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" class="muted">尚無任務。</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

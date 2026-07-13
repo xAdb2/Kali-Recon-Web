@@ -1,0 +1,3 @@
+{"template-id":"tech-detect","info":{"name":"Nginx Detected","severity":"info","tags":["tech"],"description":"nginx web server detected"},"matched-at":"https://test.test.tw/","host":"test.test.tw"}
+{"template-id":"exposed-git-config","info":{"name":"Exposed .git/config","severity":"medium","tags":["exposure","config"],"description":"A publicly accessible .git/config file was found."},"matched-at":"https://test.test.tw/.git/config","extracted-results":["[core]"]}
+{"template-id":"missing-security-headers","info":{"name":"Missing Security Headers","severity":"low","tags":["misconfig"],"description":"Some recommended HTTP security headers are missing."},"matched-at":"https://test.test.tw/","host":"test.test.tw"}
