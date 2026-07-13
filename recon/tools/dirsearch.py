@@ -32,14 +32,12 @@ class DirsearchPlugin(ToolPlugin):
         return min(base, context.limits.get("max_threads", 20))
 
     def build_argv(self, task, step, context: RunContext) -> list[str]:
-        wordlist = _WORDLISTS.get(context.profile, _WORDLISTS[Profile.SAFE])
+        # Default: just the target URL (dirsearch uses its built-in wordlist).
+        # --format/-o are injected by the backend so results can be parsed.
         return [
             "dirsearch", "-u", context.target.canonical_url,
-            "-w", wordlist,
-            "-t", str(self._threads(context)),
             "--format=json",
             "-o", context.out_path("result.json"),
-            "-q",
         ]
 
     def normalize_expert(self, tokens, task, step, context) -> list[str]:

@@ -108,11 +108,11 @@ class NmapPortsPlugin(_NmapBase):
 
     def build_argv(self, task, step, context: RunContext) -> list[str]:
         out = context.out_path("result.xml")
-        argv = ["nmap", "-sT", "-Pn", "--open"]
+        argv = ["nmap", "-sT", "-Pn", "-n", "--open"]
         if context.profile == Profile.STANDARD:
-            argv += ["-p-", "-T3", "--max-rate", str(context.rate_limit)]
+            argv += ["-p-", "-T3", "--reason"]
         else:
-            argv += ["--top-ports", "1000", "-T3", "--max-rate", str(context.rate_limit)]
+            argv += ["--top-ports", "1000", "-T3", "--reason"]
         argv += ["-oX", out, context.target.ip]
         return argv
 
