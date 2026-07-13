@@ -1,0 +1,4 @@
+url,status,content-length,content-type,redirection
+https://test.test.tw/admin/,401,12,text/html,
+https://test.test.tw/login,200,1841,text/html,
+https://test.test.tw/old,301,0,text/html,https://test.test.tw/new

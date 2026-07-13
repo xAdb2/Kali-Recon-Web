@@ -1,0 +1,4 @@
+{"template-id":"tech-detect","info":{"name":"Nginx Detected","severity":"info","tags":["tech"]},"matched-at":"https://test.test.tw/"}
+{"template-id":"broken-line","info":{"name":"Truncated","severity":"low
+not-json-at-all
+{"template-id":"exposed-env","info":{"name":"Exposed .env","severity":"high","tags":["exposure"]},"matched-at":"https://test.test.tw/.env"}

@@ -1,0 +1,8 @@
+# Normalize line endings. Shell scripts and entrypoints MUST stay LF so they
+# run correctly inside Linux containers even when checked out on Windows.
+* text=auto eol=lf
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
+*.py text eol=lf
+*.png binary
+*.jpg binary
