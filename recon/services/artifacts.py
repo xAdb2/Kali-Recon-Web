@@ -46,14 +46,27 @@ class Workspace:
         return self._safe(self.task_dir(task), rel_path)
 
     # ---- directory setup ---------------------------------------------------
+    @staticmethod
+    def _make_writable(path: Path) -> None:
+        # The worker creates these dirs as root, but the non-root scanner
+        # container (uid 10001, read-only rootfs) must write tool output here.
+        # Best-effort chmod; harmless/no-op on Windows dev hosts.
+        try:
+            path.chmod(0o777)
+        except OSError:
+            pass
+
     def ensure_task_dirs(self, task) -> None:
         base = self.task_dir(task)
         for sub in ("", "steps", "normalized", "reports"):
-            (base / sub).mkdir(parents=True, exist_ok=True)
+            d = base / sub
+            d.mkdir(parents=True, exist_ok=True)
+            self._make_writable(d)
 
     def ensure_step_dir(self, step) -> Path:
         d = self.step_dir(step)
         d.mkdir(parents=True, exist_ok=True)
+        self._make_writable(d)
         return d
 
     # ---- read/write --------------------------------------------------------
