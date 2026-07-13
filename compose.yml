@@ -52,11 +52,15 @@ services:
     image: ${APP_IMAGE:-kalirecon-app:local}
     restart: unless-stopped
     <<: *app-env
-    command: ["/app/docker/entrypoint.sh", "web"]
+    command: ["web"]
     ports:
       - "127.0.0.1:${WEB_PORT:-8080}:8000"
     volumes:
       - workspaces:/workspace
+      # Needed only so the authenticated /status/ page can report Docker socket
+      # and scanner-image health. Host-equivalent privilege — keep this app on
+      # localhost/SSH-tunnel only (see README §18).
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -77,7 +81,7 @@ services:
     image: ${APP_IMAGE:-kalirecon-app:local}
     restart: unless-stopped
     <<: *app-env
-    command: ["/app/docker/entrypoint.sh", "worker"]
+    command: ["worker"]
     volumes:
       - workspaces:/workspace
       # Host-equivalent privilege: required so the worker can start ephemeral
