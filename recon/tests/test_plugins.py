@@ -7,7 +7,8 @@ from recon.tools import all_plugins, get_plugin
 
 TARGET = parse_target("12.34.56.78", "https://test.test.tw/")
 
-_ALLOWED_EXES = {"nmap", "curl", "whatweb", "dirsearch", "openssl", "nuclei"}
+_ALLOWED_EXES = {"nmap", "curl", "whatweb", "dirsearch", "openssl", "nuclei",
+                 "subfinder"}
 
 
 def ctx(tool, open_ports=None, target=TARGET, profile=Profile.SAFE):
@@ -32,6 +33,7 @@ def test_every_plugin_has_allowlisted_executable():
         ("tls", None),
         ("dirsearch", None),
         ("nuclei", None),
+        ("subdomains", None),
     ],
 )
 def test_build_argv_returns_list_with_allowlisted_first_token(tool, open_ports):
@@ -76,6 +78,18 @@ def test_nmap_services_not_applicable_without_ports():
     plugin = get_plugin("nmap_services")
     assert plugin.is_applicable(None, ctx("nmap_services", [])) is False
     assert plugin.is_applicable(None, ctx("nmap_services", [80])) is True
+
+
+def test_subdomains_default_uses_target_hostname():
+    argv = get_plugin("subdomains").build_argv(None, None, ctx("subdomains"))
+    assert argv[0] == "subfinder"
+    assert argv[argv.index("-d") + 1] == "test.test.tw"
+    assert "-o" in argv
+
+
+def test_subdomains_requires_url():
+    no_url = parse_target("12.34.56.78", "")
+    assert get_plugin("subdomains").is_applicable(None, ctx("subdomains", target=no_url)) is False
 
 
 def test_tls_only_https():

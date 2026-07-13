@@ -13,6 +13,7 @@ from .tools.base import ExpertCommandError, sanitize_display
 _TOOL_LABELS = {
     "nmap_ports": "Nmap 連接埠探索",
     "nmap_services": "Nmap 服務辨識",
+    "subdomains": "子網域列舉",
     "http_probe": "HTTP 基線探測",
     "whatweb": "WhatWeb 指紋",
     "tls": "TLS 憑證檢查",

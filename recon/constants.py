@@ -83,11 +83,13 @@ TOOL_WHATWEB = "whatweb"
 TOOL_TLS = "tls"
 TOOL_DIRSEARCH = "dirsearch"
 TOOL_NUCLEI = "nuclei"
+TOOL_SUBDOMAINS = "subdomains"
 
 # Tools the user may explicitly request (prerequisites are auto-inserted).
 SELECTABLE_TOOLS = [
     TOOL_NMAP_PORTS,
     TOOL_NMAP_SERVICES,
+    TOOL_SUBDOMAINS,
     TOOL_HTTP_PROBE,
     TOOL_WHATWEB,
     TOOL_TLS,

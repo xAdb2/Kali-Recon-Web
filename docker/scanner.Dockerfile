@@ -17,6 +17,13 @@ RUN apt-get update \
         python3 \
     && rm -rf /var/lib/apt/lists/*
 
+# Optional: subfinder for passive subdomain enumeration. Non-fatal if the
+# package is unavailable — the subdomains step then fails gracefully at runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends subfinder \
+    && rm -rf /var/lib/apt/lists/* \
+    || echo "WARN: subfinder unavailable in this base image"
+
 # Bundled wordlists (backend-defined allowlist directory).
 COPY docker/wordlists/ /opt/wordlists/
 
@@ -45,6 +52,7 @@ RUN echo "=== scanner tool versions ===" \
     && (whatweb --version 2>/dev/null | head -1 || true) \
     && (dirsearch --version 2>/dev/null | head -1 || true) \
     && (nuclei -version 2>/dev/null | head -1 || true) \
+    && (subfinder -version 2>/dev/null | head -1 || echo "subfinder: not installed") \
     && jq --version
 
 # Non-root scanner user. Workspace + /tmp are the only writable mounts at run.

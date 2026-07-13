@@ -6,12 +6,14 @@ from .dirsearch import DirsearchPlugin
 from .http_probe import HttpProbePlugin
 from .nmap import NmapPortsPlugin, NmapServicesPlugin
 from .nuclei import NucleiPlugin
+from .subdomains import SubdomainsPlugin
 from .tls import TlsPlugin
 from .whatweb import WhatWebPlugin
 
 _PLUGIN_CLASSES = [
     NmapPortsPlugin,
     NmapServicesPlugin,
+    SubdomainsPlugin,
     HttpProbePlugin,
     WhatWebPlugin,
     TlsPlugin,

@@ -175,6 +175,35 @@ def test_nuclei_accepts_allowed_tags():
     assert "-jsonl" in argv
 
 
+# --- subfinder / subdomains -------------------------------------------------
+def test_subfinder_accepts_and_enforces_domain():
+    argv = validate("subdomains", "subfinder -all")
+    assert argv[0] == "subfinder"
+    assert argv[argv.index("-d") + 1] == "test.test.tw"
+    assert "-o" in argv
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "subfinder -dL /tmp/domains.txt",
+        "subfinder -config /etc/passwd",
+        "subfinder -pc /tmp/providers.yaml",
+    ],
+)
+def test_subfinder_rejects(text):
+    with pytest.raises(ExpertCommandError):
+        validate("subdomains", text)
+
+
+def test_subfinder_strips_user_domain_override():
+    argv = validate("subdomains", "subfinder -d evil.example")
+    # user domain is dropped; enforced task hostname is injected
+    assert "evil.example" not in argv
+    assert argv[argv.index("-d") + 1] == "test.test.tw"
+
+
+# --- nuclei -----------------------------------------------------------------
 @pytest.mark.parametrize(
     "text",
     [

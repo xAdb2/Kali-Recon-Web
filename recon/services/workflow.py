@@ -30,12 +30,15 @@ logger = logging.getLogger("recon.workflow")
 TOOL_ORDER = [
     "nmap_ports",
     "nmap_services",
+    "subdomains",
     "http_probe",
     "whatweb",
     "tls",
     "dirsearch",
     "nuclei",
 ]
+# Tools whose selection auto-inserts the HTTP baseline prerequisite. Subdomain
+# enumeration is passive and does NOT require the HTTP probe.
 WEB_TOOLS = {"whatweb", "tls", "dirsearch", "nuclei"}
 
 
