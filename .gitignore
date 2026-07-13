@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.eggs/
+
+# Django
+db.sqlite3
+staticfiles/
+/media/
+*.log
+
+# Env / secrets
+.env
+!.env.example
+
+# Test / tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Workspace artifacts (should live in a Docker volume, never committed)
+/workspace/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
