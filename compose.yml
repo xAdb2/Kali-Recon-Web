@@ -57,6 +57,10 @@ services:
       - "127.0.0.1:${WEB_PORT:-8080}:8000"
     volumes:
       - workspaces:/workspace
+      # Needed only so the authenticated /status/ page can report Docker socket
+      # and scanner-image health. Host-equivalent privilege — keep this app on
+      # localhost/SSH-tunnel only (see README §18).
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
